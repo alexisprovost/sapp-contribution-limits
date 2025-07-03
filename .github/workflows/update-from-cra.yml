@@ -1,0 +1,174 @@
+name: Update registered-plans limits
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    # weekly check during Nov & Dec (Sundays at 02:00 UTC)
+    - cron: '0 2 * 11,12 0'
+
+jobs:
+  update-limits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip >/dev/null
+          pip install requests beautifulsoup4 >/dev/null
+
+      - name: Fetch & update TFSA & RRSP JSON
+        shell: bash
+        run: |
+          python - << 'EOF'
+          import warnings
+          warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+          import os, sys, json, requests
+          from datetime import datetime
+          from bs4 import BeautifulSoup
+
+          OUT = 'ca'
+          os.makedirs(OUT, exist_ok=True)
+          TFSA_FILE = f'{OUT}/tfsa.json'
+          RRSP_FILE = f'{OUT}/rrsp.json'
+
+          # 1) If tfsa.json already has next-year, bail out
+          ny = str(datetime.utcnow().year + 1)
+          existing = {}
+          if os.path.exists(TFSA_FILE):
+              try:
+                  with open(TFSA_FILE) as f: existing = json.load(f)
+              except: pass
+              if ny in existing:
+                  print(f"Skipping: tfsa.json already has {ny}")
+                  sys.exit(0)
+
+          # 2) Download and parse limits page
+          url = (
+            "https://www.canada.ca/en/revenue-agency/"
+            "services/tax/registered-plans-administrators/"
+            "pspa/mp-rrsp-dpsp-tfsa-limits-ympe.html"
+          )
+          try:
+              r = requests.get(url, timeout=10); r.raise_for_status()
+              soup = BeautifulSoup(r.text, 'html.parser')
+          except Exception as e:
+              print(f"Error: cannot fetch limits page → {e}")
+              sys.exit(1)
+
+          def parse_table(caption_keyword, key_map):
+              tbl = None
+              for t in soup.select('table.table-bordered'):
+                  cap = t.find('caption')
+                  if cap and caption_keyword in cap.get_text(strip=True).lower():
+                      tbl = t
+                      break
+              if not tbl:
+                  return {}
+
+              # map header index → our JSON key
+              hdr = [th.get_text(strip=True).lower() for th in tbl.find_all('th')]
+              idx = {h: i for i, h in enumerate(hdr)}
+              out = {}
+              for row in tbl.select('tr')[1:]:
+                  cells = [c.get_text(strip=True).replace('$','').replace(',','') for c in row.select('th,td')]
+                  if 'year' not in idx or idx['year'] >= len(cells):
+                      continue
+                  year = cells[idx['year']]
+                  if not year: 
+                      continue
+                  entry = {}
+                  for col_name, field in key_map.items():
+                      i = idx.get(col_name)
+                      if i is None or i >= len(cells):
+                          entry[field] = None
+                      else:
+                          v = cells[i].strip()
+                          if v.lower() in ('','-','n/a','na'):
+                              entry[field] = None
+                          else:
+                              # integer if no decimal, else float
+                              try:
+                                  entry[field] = int(v)
+                              except ValueError:
+                                  try:
+                                      entry[field] = float(v)
+                                  except ValueError:
+                                      entry[field] = None
+                  out[year] = entry
+              return out
+
+          # 3) Full limits (MP, DB, RRSP, DPSP, YMPE, YAMPE)
+          main_map = {
+            'mp limit':       'mp_limit',
+            'db limit':       'db_limit',
+            'rrsp dollar limit':'rrsp_limit',
+            'dpsp limit':     'dpsp_limit',
+            'ympe':           'ympe',
+            'yampe':          'yampe'
+          }
+          main_data = parse_table('rrsp', {'year':'year', **main_map})
+
+          # 4) TFSA & ALDA
+          tfsa_map = {
+            'tfsa dollar limit':'tfsa_limit',
+            'alda dollar limit':'alda_limit'
+          }
+          tfsa_data = parse_table('tfsa and alda', {'year':'year', **tfsa_map})
+
+          # 5) Fallback TFSA only if needed
+          if not tfsa_data:
+              contrib_url = (
+                "https://www.canada.ca/en/revenue-agency/"
+                "services/tax/individuals/topics/"
+                "tax-free-savings-account/contributions.html"
+              )
+              try:
+                  c = requests.get(contrib_url, timeout=10); c.raise_for_status()
+                  s2 = BeautifulSoup(c.text, 'html.parser')
+                  tbl2 = None
+                  for t in s2.select('table.table-bordered'):
+                      cap = t.find('caption')
+                      if cap and 'beginning of' in cap.get_text(strip=True).lower():
+                          tbl2 = t; break
+                  if tbl2:
+                      for tr in tbl2.select('tr'):
+                          cols = tr.select('td')
+                          if len(cols) < 4:
+                              continue
+                          y = cols[0].get_text(strip=True).split()[-1]
+                          v = cols[-1].get_text(strip=True).replace('$','').replace(',','').strip()
+                          if y and v.isdigit():
+                              tfsa_data[y] = { 'tfsa_limit': int(v) }
+              except:
+                  pass
+
+          # 6) Only overwrite if we actually parsed something
+          if main_data:
+              with open(RRSP_FILE, 'w') as f:
+                  json.dump(main_data, f, indent=2, sort_keys=True)
+          if tfsa_data:
+              with open(TFSA_FILE, 'w') as f:
+                  json.dump(tfsa_data, f, indent=2, sort_keys=True)
+          EOF
+
+      - name: Commit & push if changed
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git add ca/rrsp.json ca/tfsa.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(limits): update TFSA & RRSP data"
+            git push
+          fi
