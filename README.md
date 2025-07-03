@@ -1,6 +1,6 @@
 # sapp-contribution-limits
 
-Latest Values of TFSA, RRSP, YMPE and ALDA contribution limits from the CRA
+Latest Values of Savings and pension plans TFSA, RRSP, YMPE and ALDA contribution limits from the CRA
 
 # Disclaimer
 
