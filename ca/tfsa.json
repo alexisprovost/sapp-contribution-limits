@@ -1,0 +1,87 @@
+{
+  "2009": {
+    "alda_limit": null,
+    "tfsa_limit": 5000,
+    "year": 2009
+  },
+  "2010": {
+    "alda_limit": null,
+    "tfsa_limit": 5000,
+    "year": 2010
+  },
+  "2011": {
+    "alda_limit": null,
+    "tfsa_limit": 5000,
+    "year": 2011
+  },
+  "2012": {
+    "alda_limit": null,
+    "tfsa_limit": 5000,
+    "year": 2012
+  },
+  "2013": {
+    "alda_limit": null,
+    "tfsa_limit": 5500,
+    "year": 2013
+  },
+  "2014": {
+    "alda_limit": null,
+    "tfsa_limit": 5500,
+    "year": 2014
+  },
+  "2015": {
+    "alda_limit": null,
+    "tfsa_limit": 10000,
+    "year": 2015
+  },
+  "2016": {
+    "alda_limit": null,
+    "tfsa_limit": 5500,
+    "year": 2016
+  },
+  "2017": {
+    "alda_limit": null,
+    "tfsa_limit": 5500,
+    "year": 2017
+  },
+  "2018": {
+    "alda_limit": null,
+    "tfsa_limit": 5500,
+    "year": 2018
+  },
+  "2019": {
+    "alda_limit": null,
+    "tfsa_limit": 6000,
+    "year": 2019
+  },
+  "2020": {
+    "alda_limit": 150000,
+    "tfsa_limit": 6000,
+    "year": 2020
+  },
+  "2021": {
+    "alda_limit": 150000,
+    "tfsa_limit": 6000,
+    "year": 2021
+  },
+  "2022": {
+    "alda_limit": 160000,
+    "tfsa_limit": 6000,
+    "year": 2022
+  },
+  "2023": {
+    "alda_limit": 160000,
+    "tfsa_limit": 6500,
+    "year": 2023
+  },
+  "2024": {
+    "alda_limit": 170000,
+    "tfsa_limit": 7000,
+    "year": 2024
+  },
+  "2025": {
+    "alda_limit": 180000,
+    "tfsa_limit": 7000,
+    "year": 2025
+  }
+}
