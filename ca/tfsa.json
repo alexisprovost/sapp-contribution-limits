@@ -83,5 +83,10 @@
     "alda_limit": 180000,
     "tfsa_limit": 7000,
     "year": 2025
+  },
+  "2026": {
+    "alda_limit": 180000,
+    "tfsa_limit": 7000,
+    "year": 2026
   }
 }
