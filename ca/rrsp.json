@@ -333,12 +333,21 @@
     "ympe": 74600
   },
   "2027": {
+    "db_limit": 4043.33,
+    "dpsp_limit": null,
+    "mp_limit": 36390,
+    "rrsp_limit": null,
+    "yampe": 87400,
+    "year": 2027,
+    "ympe": 76700
+  },
+  "2028": {
     "db_limit": null,
     "dpsp_limit": null,
     "mp_limit": null,
     "rrsp_limit": null,
     "yampe": null,
-    "year": 2027,
+    "year": 2028,
     "ympe": null
   }
 }
